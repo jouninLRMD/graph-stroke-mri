@@ -1,0 +1,60 @@
+paths:
+  raw_bids: ""  # Set to your OpenNeuro ds004889 BIDS directory
+  soop_normalized: ""  # Set to SOOP_NIfTI_normalized/NIfTI/ directory
+  output_preprocessed: "data/preprocessed"
+  output_graphs: "data/graphs"
+  output_models: "data/models"
+  output_visualizations: "data/visualizations"
+  atlas_file: ""  # Set to ArterialAtlas136.nii.gz path
+  atlas_labels_file: ""  # Set to ArterialAtlas136.txt path
+
+slic:
+  target_supervoxel_size: 256
+  compactness: 0.1
+  atlas_penalty_lambda: 0.5
+  max_iterations: 10
+  convergence_threshold: 1.0e-4
+  min_cluster_size: 20
+  modality_weights:
+    T1: 0.25
+    FLAIR: 0.25
+    ADC: 0.25
+    TRACE: 0.25
+
+graph:
+  connectivity: 26
+  edge_weight_alpha: 0.25
+  edge_weight_beta: 0.25
+  edge_weight_gamma: 0.25
+  edge_weight_delta: 0.25
+  num_lesion_types: 3
+  spatial_sigma: 10.0
+  batch_size_nodes: 512
+  batch_size_edges: 4
+
+model:
+  num_layers: 3
+  num_heads: 8
+  hidden_dim: 128
+  dropout: 0.1
+  negative_slope: 0.2
+  num_classes: 3
+  use_paa: true
+  use_edge_weights: true
+
+training:
+  epochs: 200
+  lr: 0.001
+  lr_decay_rate: 0.95
+  weight_decay: 5.0e-4
+  batch_size: 8
+  num_workers: 4
+  early_stopping_patience: 20
+  early_stopping_min_delta: 0.001
+  val_split: 0.15
+  test_split: 0.15
+  seed: 42
+  composite_weights:
+    dice: 0.5
+    auc: 0.3
+    sensitivity: 0.2
