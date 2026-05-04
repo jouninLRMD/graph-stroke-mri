@@ -1,15 +1,13 @@
-"""Probabilistic Attention Attribution (PAA) module.
+"""Probabilistic Attention Attribution (Eq. 12).
 
-Implements Equation 12 from the paper:
-  A_ij = alpha_ij * (p_i^T . p_j)
+For an edge (i, j),
 
-Where:
-- alpha_ij: learned attention coefficient from GAT
-- p_i, p_j: probabilistic connectivity feature vectors [p0, p1, p2]
+    A_ij = alpha_ij * (p_i^T . p_j)
 
-The PAA module re-weights attention by the dot product of connectivity
-probability vectors, making attention interpretable as probabilistic
-lesion-type agreement between neighboring supervoxels.
+where alpha_ij is the learned GAT attention coefficient and p_i, p_j are the
+node-level connectivity probability vectors [p0, p1, p2] over the three
+lesion classes. PAA re-weights attention by the lesion-type agreement of a
+node's neighborhood, which gives a more clinically meaningful saliency map.
 """
 
 from __future__ import annotations
@@ -25,17 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class ProbabilisticAttentionAttribution(nn.Module):
-    """PAA: modulates GAT attention weights by lesion neighborhood similarity.
+    """PAA layer: rescales GAT attention by lesion-type neighborhood agreement.
 
-    For each edge (i,j), the attribution score is:
-        A_ij = alpha_ij * (p_i^T . p_j)
-
-    Where p_i and p_j are the connectivity probability vectors that encode
-    the distribution of lesion types among each node's neighbors.
-
-    This provides clinically interpretable attention: high A_ij means both
-    the model attends to the edge AND the two nodes share similar lesion
-    neighborhood profiles.
+    A high attribution A_ij means the model both attends to the edge and the
+    two endpoints have similar lesion-type neighbourhoods.
     """
 
     def __init__(self, hidden_dim: int, num_lesion_types: int = 3):

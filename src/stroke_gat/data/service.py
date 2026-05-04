@@ -1,8 +1,13 @@
-"""DataService: central data access layer for SOOP MRI data.
+"""Data access layer for the SOOP MRI dataset.
 
-Supports two data layouts:
-1. Raw BIDS: sub-XXX/anat/sub-XXX_T1w.nii.gz, etc.
-2. SOOP normalized flat: wsub-XXX_FLAIR.nii.gz, bwsrsub-XXX_lesion.nii.gz
+Supports two layouts (see docs/DATA_LAYOUT.md for the full specification):
+
+1. Raw BIDS as published on OpenNeuro ``ds004889`` --- per-subject
+   ``anat/`` and ``dwi/`` folders plus ``derivatives/lesion_masks/``. This is
+   the layout used for full multi-modal training.
+2. The SOOP normalized release --- a flat directory with ``wsub-{ID}_FLAIR``
+   and ``bwsrsub-{ID}_lesion`` files. Used as a FLAIR-only quickstart and as
+   the source of the ArterialAtlas136 atlas.
 """
 
 from __future__ import annotations
@@ -27,11 +32,7 @@ _SUBJECT_DIR_PATTERN = re.compile(r"^sub-[A-Za-z0-9]+$")
 
 
 class DataService:
-    """Stateless service for accessing SOOP MRI data.
-
-    Provides a unified interface for loading multi-modal MRI data from
-    either raw BIDS format or the pre-processed SOOP normalized layout.
-    """
+    """Loader for either raw BIDS or the SOOP normalized release."""
 
     def __init__(self, config: PathsConfig):
         self._config = config

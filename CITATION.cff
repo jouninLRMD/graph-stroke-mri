@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "graph-stroke-mri"
+type: software
+authors:
+  - family-names: Mercado-Diaz
+    given-names: Luis R.
+    affiliation: "University of Connecticut, Department of Biomedical Engineering"
+    email: luis.mercado_diaz@uconn.edu
+license: MIT
+repository-code: "https://github.com/jouninLRMD/graph-stroke-mri"
+preferred-citation:
+  type: article
+  title: "Graph-based multi-modal MRI analysis with probabilistic attention for stroke lesion detection"
+  authors:
+    - family-names: Mercado-Diaz
+      given-names: Luis R.
+    - family-names: Vyas
+      given-names: Reshma
+    - family-names: Vu
+      given-names: Phuc
+    - family-names: Saver
+      given-names: Jeffrey L.
+    - family-names: Liebeskind
+      given-names: David S.
+    - family-names: Posner
+      given-names: Jonathan
+    - family-names: Hsu
+      given-names: Joseph
+    - family-names: Carmichael
+      given-names: S. Thomas
+    - family-names: Scalzo
+      given-names: Fabien
+  journal: Neurocomputing
+  year: 2025
+  publisher:
+    name: Elsevier

@@ -1,14 +1,9 @@
-"""StrokeGAT: Graph Attention Network for stroke lesion node classification.
+"""GAT classifier for supervoxel nodes.
 
-Architecture from the paper (Section 3.3):
-- 3 GAT attention layers with 8 heads each
-- Hidden dimension 128 (each head outputs 16 dims)
-- LeakyReLU activation (negative_slope=0.2)
-- Dropout 0.1 between layers
-- Final layer: single head projecting to num_classes
-- Intermediate layers concatenate heads (Eq. 10)
-- Final layer averages heads (Eq. 11)
-- Optional PAA module between 2nd and 3rd layers (Eq. 12)
+Architecture from Section 3.3: three GATConv layers with 8 attention heads
+each, hidden dimension 128 (16 per head), LeakyReLU(0.2), Dropout(0.1).
+The first two layers concatenate heads (Eq. 10) and the last averages them
+(Eq. 11). The PAA module sits between the second and third layers (Eq. 12).
 """
 
 from __future__ import annotations
@@ -27,10 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class StrokeGAT(nn.Module):
-    """Multi-layer GAT with probabilistic attention attribution.
-
-    Designed for per-node classification of brain graph supervoxels
-    into lesion categories: no lesion (0), acute (1), chronic (2).
+    """GAT with optional PAA, classifying each supervoxel node into
+    {no lesion (0), acute (1), chronic (2)}.
     """
 
     def __init__(

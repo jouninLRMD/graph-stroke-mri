@@ -1,13 +1,9 @@
-"""GraphBuilder: orchestrates the full graph construction pipeline.
+"""End-to-end graph construction for one subject.
 
-Pipeline:
-1. Run AnatomicalSLIC to get supervoxel labels
-2. Compute node features (intensity stats + centroid + atlas encoding + volume)
-3. Build adjacency via 26-connectivity
-4. Compute edge weights using 4-component formula
-5. Compute connectivity probability vectors
-6. Append connectivity probs to node features
-7. Package into torch_geometric.data.Data
+SLIC -> per-supervoxel features (intensity stats, centroid, atlas one-hot,
+volume) -> 26-connectivity adjacency -> 4-component edge weights (Eq. 7) ->
+connectivity probability vectors appended to node features -> a
+``torch_geometric.data.Data`` object ready for training.
 """
 
 from __future__ import annotations

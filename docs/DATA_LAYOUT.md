@@ -1,107 +1,85 @@
-# Data Layout Reference
+# Data layout
 
-This document describes the **exact file layout** the pipeline expects, plus the
-**per-voxel label derivation rule**. If something here is unclear, run
-`python scripts/validate_dataset.py --config configs/local.yaml` — the validator
-checks every assumption documented below.
+Notes on what the pipeline expects on disk and how voxel labels are derived.
+If anything below seems off in your tree, run
 
----
+```bash
+python scripts/validate_dataset.py --config configs/local.yaml
+```
+
+which checks every path mentioned here.
 
 ## 1. Raw BIDS dataset (OpenNeuro `ds004889`)
 
-The full multi-modal stroke dataset, required for paper-faithful 3-class node classification.
+The full multi-modal data is required for the 3-class classification used in
+the paper. Expected tree:
 
 ```
 ds004889/
-├── README                                  (optional, dataset notes)
-├── CHANGES                                 (optional, version history)
-├── dataset_description.json                (BIDS-required, "BIDSVersion", "Name")
-├── participants.tsv                        (subject-level demographics)
-├── sub-1000/
-│   ├── anat/
-│   │   ├── sub-1000_T1w.nii.gz             T1-weighted anatomical
-│   │   └── sub-1000_FLAIR.nii.gz           FLAIR
-│   └── dwi/
-│       ├── sub-1000_rec-ADC_dwi.nii.gz     Apparent Diffusion Coefficient map
-│       └── sub-1000_rec-TRACE_dwi.nii.gz   Trace-weighted DWI
-├── sub-1001/...
-├── ... (~1715 subjects)
-└── derivatives/
-    └── lesion_masks/
-        ├── sub-1000/
-        │   └── dwi/
-        │       ├── sub-1000_space-TRACE_desc-lesion_mask.nii.gz
-        │       │       (combined lesion mask, both timings union)
-        │       ├── sub-1000_space-TRACE_desc-lesionAcute_mask.nii.gz
-        │       │       (acute lesion only — class 1)
-        │       └── sub-1000_space-TRACE_desc-lesionChronic_mask.nii.gz
-        │               (chronic lesion only — class 2)
-        ├── sub-1001/...
-        └── ...
+  dataset_description.json
+  participants.tsv
+  sub-1000/
+    anat/
+      sub-1000_T1w.nii.gz
+      sub-1000_FLAIR.nii.gz
+    dwi/
+      sub-1000_rec-ADC_dwi.nii.gz
+      sub-1000_rec-TRACE_dwi.nii.gz
+  sub-1001/
+  ...
+  derivatives/
+    lesion_masks/
+      sub-1000/
+        dwi/
+          sub-1000_space-TRACE_desc-lesion_mask.nii.gz
+          sub-1000_space-TRACE_desc-lesionAcute_mask.nii.gz
+          sub-1000_space-TRACE_desc-lesionChronic_mask.nii.gz
+      sub-1001/
+      ...
 ```
 
-### What's required vs optional
+Per-subject required files:
 
-| File | Required for training? | Notes |
-|---|---|---|
-| `sub-XXXX_T1w.nii.gz` | **Yes** | Reference image for inter-modal registration |
-| `sub-XXXX_FLAIR.nii.gz` | Yes | Used as a modality + for atlas overlay viz |
-| `sub-XXXX_rec-ADC_dwi.nii.gz` | Recommended | Modality contributes to SLIC + graph features |
-| `sub-XXXX_rec-TRACE_dwi.nii.gz` | Recommended | Modality contributes to SLIC + graph features |
-| `..._desc-lesionAcute_mask.nii.gz` | **Yes for 3-class** | Without it, only class 0 / "no lesion" labels are derivable |
-| `..._desc-lesionChronic_mask.nii.gz` | **Yes for 3-class** | Same |
-| `..._desc-lesion_mask.nii.gz` | Optional | Used as a sanity check / fallback combined mask |
+| File                                    | Required? | Notes                                  |
+|-----------------------------------------|-----------|----------------------------------------|
+| `sub-XXXX_T1w.nii.gz`                   | yes       | reference image for inter-modal alignment |
+| `sub-XXXX_FLAIR.nii.gz`                 | yes       | also used for atlas overlays           |
+| `sub-XXXX_rec-ADC_dwi.nii.gz`           | recommended | fourth SLIC channel                  |
+| `sub-XXXX_rec-TRACE_dwi.nii.gz`         | recommended | fourth SLIC channel                  |
+| `..._desc-lesionAcute_mask.nii.gz`      | yes for 3-class labels | provides class 1            |
+| `..._desc-lesionChronic_mask.nii.gz`    | yes for 3-class labels | provides class 2            |
+| `..._desc-lesion_mask.nii.gz`           | optional  | combined mask, used as a sanity check  |
 
-### Subject ID format
-
-Subject IDs are `sub-` followed by alphanumerics. The pipeline scans the BIDS
-root with the regex `^sub-[A-Za-z0-9]+$`, so both `sub-1000` and `sub-09A` work.
-The OpenNeuro publication uses numeric IDs (`sub-1000`, `sub-1001`, ...).
-
----
+Subject IDs are matched with the regex `^sub-[A-Za-z0-9]+$`, so `sub-1000` and
+`sub-09A` are both fine. The OpenNeuro release uses numeric IDs.
 
 ## 2. SOOP normalized release
 
-A **flat** directory of FLAIR + single binary lesion masks in standard MNI space.
-This release does **not** contain T1, ADC, TRACE, or the acute/chronic split. It
-is used by this project for two purposes:
+A flat directory of warped FLAIR volumes plus a single binary lesion mask per
+subject. We use it for two things:
 
-1. **The ArterialAtlas136 atlas + label file** (required by the graph
-   construction step regardless of which dataset you train on).
-2. **A FLAIR-only quickstart for `notebooks/01_data_exploration.ipynb`** when the
-   raw BIDS hasn't been downloaded yet.
+1. The `ArterialAtlas136` atlas and its label file (needed regardless of which
+   data source you train on).
+2. A FLAIR-only quickstart for `notebooks/01_data_exploration.ipynb` — if you
+   haven't pulled the full BIDS dataset yet, the notebook will run against this
+   release.
 
 ```
 SOOP_NIfTI_normalized/NIfTI/
-├── ArterialAtlas136.nii.gz                 atlas volume (32 arterial regions)
-├── ArterialAtlas136.txt                    region-id → name map (see Section 3)
-├── FLAIR_mean_1714.nii.gz                  population mean FLAIR (auxiliary)
-├── T1_mean_1714.nii.gz                     population mean T1 (auxiliary)
-├── lesion_mean_1449.nii.gz                 population mean lesion (auxiliary)
-├── wsub-10_FLAIR.nii.gz                    warped FLAIR for subject 10
-├── wsub-100_FLAIR.nii.gz
-├── wsub-1000_FLAIR.nii.gz
-├── ... (1714 total)
-├── bwsrsub-10_lesion.nii.gz                binary lesion mask for subject 10
-├── bwsrsub-100_lesion.nii.gz
-├── bwsrsub-1000_lesion.nii.gz
-└── ... (1449 total — only subjects with lesions)
+  ArterialAtlas136.nii.gz                 (32 arterial regions)
+  ArterialAtlas136.txt                    (region-id -> name)
+  FLAIR_mean_1714.nii.gz                  (population mean, auxiliary)
+  T1_mean_1714.nii.gz
+  lesion_mean_1449.nii.gz
+  wsub-{ID}_FLAIR.nii.gz                  (1714 files)
+  bwsrsub-{ID}_lesion.nii.gz              (1449 files; only stroke subjects)
 ```
 
-### Filename prefixes
-
-| Prefix | Meaning |
-|---|---|
-| `w`     | warped to standard space |
-| `bwsr`  | bias-corrected, warped, smoothed, resampled |
-
-### Subject ID format
-
-Numeric only, no zero-padding, no `sub-` prefix:
-`wsub-10_FLAIR.nii.gz`, `wsub-100_FLAIR.nii.gz`, `wsub-1000_FLAIR.nii.gz`.
-The pipeline parses these via the regex `bwsrsub-(\d+)_lesion\.nii\.gz`.
-
----
+Filename prefixes follow the SOOP convention: `w` = warped to standard space;
+`bwsr` = bias-corrected, warped, smoothed, resampled. Subject IDs in this
+release are numeric only with no zero-padding (`wsub-10_FLAIR.nii.gz`,
+`wsub-1000_FLAIR.nii.gz`); the loader matches them with
+`bwsrsub-(\d+)_lesion\.nii\.gz`.
 
 ## 3. ArterialAtlas136 label file
 
@@ -112,78 +90,64 @@ The pipeline parses these via the regex `bwsrsub-(\d+)_lesion\.nii\.gz`.
 2|ACAR|anterior cerebral artery right|2
 3|MLSL|medial lenticulostriate left|1
 ...
-32|VBR|vertebrobasilar right|2
 ```
 
-Columns: `index | abbreviation | full_name | group_id`.
-The pipeline only uses `index` and `full_name`.
+Columns: `index | abbreviation | full_name | group_id`. Only `index` and
+`full_name` are used downstream.
 
----
+## 4. How node labels are derived
 
-## 4. Per-voxel label derivation rule
-
-From the user's clinical clarification: **labels are derived per voxel by
-overlapping the acute and chronic mask volumes**.
+For each voxel `v`:
 
 ```
-For each voxel v:
-    if v is inside the acute mask:    label(v) = 1   (acute lesion)
-    elif v is inside the chronic mask: label(v) = 2   (chronic lesion)
-    else:                              label(v) = 0   (no lesion / control tissue)
+if v in acute mask         -> 1   (acute)
+elif v in chronic mask     -> 2   (chronic)
+else                       -> 0   (no lesion)
 ```
 
-Edge cases:
+If both masks happen to cover the same voxel, acute wins. Subjects whose
+acute and chronic masks are both empty are controls and contribute only
+class-0 nodes; missing mask files are zero-filled in
+`DataService.load_subject_masks()`.
 
-- **Both masks cover a voxel** (rare overlap): acute wins (more clinically urgent).
-  Implemented in `src/stroke_gat/graph/features.py` via a nested
-  `torch.where(acute > 0, 1, where(chronic > 0, 2, 0))`.
-- **Subject has no acute mask AND no chronic mask** (control / non-stroke):
-  every voxel is class 0. The pipeline handles this transparently — missing
-  masks are zero-filled in `DataService.load_subject_masks()`.
-- **Voxel-to-supervoxel aggregation**: a supervoxel inherits the label of any
-  voxel inside it (priority same as above: acute > chronic > none). See
-  `NodeFeatureComputer.compute()`.
-
----
+A supervoxel inherits the label of any voxel in it, with the same priority
+(acute > chronic > none). The aggregation lives in `NodeFeatureComputer.compute`
+in `src/stroke_gat/graph/features.py`.
 
 ## 5. Atlas registration
 
-`ArterialAtlas136.nii.gz` is in standard MNI space. The pipeline registers it to
-each subject's T1 via nilearn `resample_to_img(..., interpolation="nearest")`,
-implemented in `DataService.preprocess_subject()`. All modalities are
-co-registered to T1 before graph construction.
+The atlas is published in standard MNI space. During preprocessing it is
+resampled into each subject's T1 space with nilearn's
+`resample_to_img(..., interpolation="nearest")`; FLAIR/ADC/TRACE are also
+co-registered to T1 with linear interpolation. See
+`DataService.preprocess_subject()`.
 
----
+## 6. Outputs
 
-## 6. Output layout
-
-After running the pipeline, this is what you get:
+After running `preprocess_dataset.py` and `generate_graphs.py`:
 
 ```
 data/
-├── preprocessed/                            # written by preprocess_dataset.py
-│   ├── sub-1000/
-│   │   ├── T1.nii.gz                        registered + normalized
-│   │   ├── FLAIR.nii.gz
-│   │   ├── ADC.nii.gz
-│   │   ├── TRACE.nii.gz
-│   │   ├── General_mask.nii.gz              registered to T1 space
-│   │   ├── Acute_mask.nii.gz
-│   │   └── Chronic_mask.nii.gz
-│   └── ...
-├── graphs/                                  # written by generate_graphs.py
-│   ├── sub-1000_supervoxel_graph.pt         torch_geometric.data.Data
-│   ├── sub-1001_supervoxel_graph.pt
-│   └── ...
-├── subjects_metadata.csv                    # written by generate_graphs.py
-│                                            # columns: subject, stroke_status,
-│                                            # lesion_level, has_acute, has_chronic
-└── models/                                  # output of training (configurable)
+  preprocessed/
+    sub-1000/
+      T1.nii.gz                          (registered, normalized)
+      FLAIR.nii.gz
+      ADC.nii.gz
+      TRACE.nii.gz
+      General_mask.nii.gz
+      Acute_mask.nii.gz
+      Chronic_mask.nii.gz
+  graphs/
+    sub-1000_supervoxel_graph.pt          (torch_geometric.data.Data)
+    sub-1001_supervoxel_graph.pt
+    ...
+  subjects_metadata.csv                   (subject, stroke_status, lesion_level,
+                                           has_acute, has_chronic)
 
-outputs/                                     # default training output_dir
-├── checkpoints/
-│   ├── best_model.pt                        best by composite score
-│   └── latest_checkpoint.pt
-├── training_results.json
-└── test_results.json
+outputs/                                  (default --output-dir for train.py)
+  checkpoints/
+    best_model.pt
+    latest_checkpoint.pt
+  training_results.json
+  test_results.json
 ```

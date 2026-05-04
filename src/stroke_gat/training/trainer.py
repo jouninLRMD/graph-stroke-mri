@@ -1,11 +1,8 @@
-"""Training loop for StrokeGAT with early stopping and LR scheduling.
+"""Training loop matching Section 3.5 of the paper.
 
-Implements the training procedure from Section 3.5:
-- Adam optimizer (lr=0.001, betas=(0.9, 0.999))
-- Exponential LR decay (gamma=0.95)
-- Early stopping (patience=20)
-- L2 regularization (weight_decay=5e-4)
-- Model selection by composite score: 0.5*Dice + 0.3*AUC + 0.2*Sensitivity
+Adam (lr=1e-3, betas=(0.9, 0.999)), ExponentialLR decay (gamma=0.95),
+weight decay 5e-4, early stopping with patience 20, model selection by
+composite score 0.5*Dice + 0.3*AUC + 0.2*Sensitivity.
 """
 
 from __future__ import annotations

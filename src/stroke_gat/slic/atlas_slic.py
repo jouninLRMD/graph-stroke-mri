@@ -1,13 +1,13 @@
 """Anatomically-constrained 3D SLIC supervoxel segmentation.
 
-Implements Algorithm 1 from the paper with the modified distance metric (Eq. 5):
-  D*_k(v) = d_intensity + (m/S) * d_spatial + lambda * Delta(A(v), A(s_k))
+Algorithm 1 from the paper, with the modified distance metric of Eq. 5:
 
-Key features:
-- Multi-modal intensity distance using all MRI sequences
-- Atlas boundary penalty to respect neuroanatomical structures
-- numba-accelerated voxel assignment for production performance
-- Connectivity post-processing ensuring contiguous supervoxels
+    D*_k(v) = d_intensity + (m/S) * d_spatial + lambda * Delta(A(v), A(s_k))
+
+The atlas penalty term keeps clusters from crossing arterial-territory
+boundaries; the multi-modal intensity term uses all MRI sequences. The voxel
+assignment loop is JIT-compiled with numba so per-subject segmentation runs in
+roughly a minute on commodity CPUs.
 """
 
 from __future__ import annotations
@@ -26,15 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class AnatomicalSLIC:
-    """Anatomically-constrained 3D SLIC supervoxel segmentation.
+    """3D SLIC with multi-modal intensity, atlas penalty, and brain-mask support.
 
-    This algorithm extends standard 3D SLIC with:
-    1. Multi-modal intensity distance across T1, FLAIR, ADC, TRACE
-    2. Atlas penalty term preventing clusters from crossing anatomical boundaries
-    3. Brain mask support to skip non-brain voxels
-
-    The result is ~8000 supervoxels that respect ArterialAtlas136 boundaries
-    with >90% region adherence.
+    With ``target_supervoxel_size = 256`` and the default penalty lambda this
+    yields about 8000 supervoxels per brain with >90% atlas-region adherence.
     """
 
     def __init__(self, config: SLICConfig):
