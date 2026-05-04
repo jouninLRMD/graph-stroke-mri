@@ -157,13 +157,21 @@ class NodeFeatureComputer:
             gen_max = torch_scatter.scatter_max(batch_general, batch_inv, dim=0, dim_size=batch_n)[0]
             acu_max = torch_scatter.scatter_max(batch_acute, batch_inv, dim=0, dim_size=batch_n)[0]
             chr_max = torch_scatter.scatter_max(batch_chronic, batch_inv, dim=0, dim_size=batch_n)[0]
+            del gen_max  # Computed for symmetry / future use; not part of label rule.
 
-            # Assign label: acute=1, chronic=2, no_lesion=0
-            labels = torch.zeros(batch_n, dtype=torch.long, device=self.device)
-            labels[acu_max > 0] = 1
-            labels[chr_max > 0] = 2
-            # If both, prefer acute (more clinically urgent)
-            labels[(acu_max > 0) & (chr_max > 0)] = 1
+            # Per-supervoxel label rule (matches docs/DATA_LAYOUT.md, Section 4):
+            #   if any voxel in the supervoxel is in the acute mask     -> 1 (acute)
+            #   elif any voxel is in the chronic mask                   -> 2 (chronic)
+            #   else                                                    -> 0 (no lesion / control)
+            # Acute wins on overlap (more clinically urgent).
+            ones = torch.ones(batch_n, dtype=torch.long, device=self.device)
+            twos = torch.full((batch_n,), 2, dtype=torch.long, device=self.device)
+            zeros = torch.zeros(batch_n, dtype=torch.long, device=self.device)
+            labels = torch.where(
+                acu_max > 0,
+                ones,
+                torch.where(chr_max > 0, twos, zeros),
+            )
 
             all_lesion_labels.append(labels.cpu())
 

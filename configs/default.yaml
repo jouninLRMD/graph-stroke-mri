@@ -1,12 +1,12 @@
 paths:
-  raw_bids: ""  # Set to your OpenNeuro ds004889 BIDS directory
-  soop_normalized: ""  # Set to SOOP_NIfTI_normalized/NIfTI/ directory
+  raw_bids: "E:/ONEDRIVE/Research/Stroke_MRI_data/Stroke_MRI_Segmentation_Project/data/raw"
+  soop_normalized: "E:/ONEDRIVE/Research/Stroke_MRI_data/SOOP_NIfTI_normalized/SOOP_NIfTI_normalized/NIfTI"
   output_preprocessed: "data/preprocessed"
   output_graphs: "data/graphs"
   output_models: "data/models"
   output_visualizations: "data/visualizations"
-  atlas_file: ""  # Set to ArterialAtlas136.nii.gz path
-  atlas_labels_file: ""  # Set to ArterialAtlas136.txt path
+  atlas_file: "E:/ONEDRIVE/Research/Stroke_MRI_data/SOOP_NIfTI_normalized/SOOP_NIfTI_normalized/NIfTI/ArterialAtlas136.nii.gz"
+  atlas_labels_file: "E:/ONEDRIVE/Research/Stroke_MRI_data/SOOP_NIfTI_normalized/SOOP_NIfTI_normalized/NIfTI/ArterialAtlas136.txt"
 
 slic:
   target_supervoxel_size: 256

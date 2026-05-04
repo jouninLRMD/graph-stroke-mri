@@ -70,51 +70,115 @@ graph-stroke-mri/
 └── tests/                      # Pytest test suite
 ```
 
-## Quick Start
+## Reproducing from zero
 
-### 1. Configure data paths
+This pipeline reproduces the published results end-to-end. Starting from a clean machine:
 
-Edit `configs/default.yaml` to point to your data:
+### Step 1 — Download the raw BIDS dataset
 
+The full multi-modal stroke dataset is published on OpenNeuro as **`ds004889`** (Stroke Outcome Optimization Project, ~XXX GB):
+
+> https://openneuro.org/datasets/ds004889
+
+Three download options, recommended order first:
+
+- **DataLad** (resumable, supports partial downloads — best for large datasets):
+  ```bash
+  datalad install https://github.com/OpenNeuroDatasets/ds004889.git
+  cd ds004889
+  datalad get .                       # download everything
+  # or, to start small:
+  datalad get sub-1000 sub-1001 derivatives/lesion_masks/sub-1000 derivatives/lesion_masks/sub-1001
+  ```
+- **AWS S3 mirror** (single sync command):
+  ```bash
+  aws s3 sync --no-sign-request s3://openneuro.org/ds004889 ./ds004889
+  ```
+- **Browser download** from the OpenNeuro page above.
+
+Expected layout after download (verified by `validate_dataset.py` in Step 4):
+```
+ds004889/
+├── dataset_description.json
+├── participants.tsv
+├── sub-1000/
+│   ├── anat/
+│   │   ├── sub-1000_T1w.nii.gz
+│   │   └── sub-1000_FLAIR.nii.gz
+│   └── dwi/
+│       ├── sub-1000_rec-ADC_dwi.nii.gz
+│       └── sub-1000_rec-TRACE_dwi.nii.gz
+├── sub-1001/...
+└── derivatives/
+    └── lesion_masks/
+        └── sub-1000/
+            └── dwi/
+                ├── sub-1000_space-TRACE_desc-lesion_mask.nii.gz
+                ├── sub-1000_space-TRACE_desc-lesionAcute_mask.nii.gz
+                └── sub-1000_space-TRACE_desc-lesionChronic_mask.nii.gz
+```
+
+> See [docs/DATA_LAYOUT.md](docs/DATA_LAYOUT.md) for the full reference, including the per-voxel labeling rules.
+
+### Step 2 — (Optional) SOOP normalized release for the atlas
+
+Notebook 01 and the graph construction step need the **ArterialAtlas136** atlas (and its label file). They ship in the SOOP normalized release:
+
+```
+SOOP_NIfTI_normalized/NIfTI/
+├── ArterialAtlas136.nii.gz
+├── ArterialAtlas136.txt
+├── wsub-{ID}_FLAIR.nii.gz       (1714 files, FLAIR-only quickstart data)
+└── bwsrsub-{ID}_lesion.nii.gz   (1449 files, single binary mask)
+```
+
+The SOOP normalized release contains FLAIR + a single binary lesion mask per subject in standard MNI space — it does **not** include T1, ADC, TRACE, or the acute/chronic split. Use it for the atlas + as a quickstart data source for `notebooks/01_data_exploration.ipynb`. Full training requires Step 1.
+
+### Step 3 — Configure paths
+
+```bash
+cp configs/default.yaml configs/local.yaml
+```
+
+Edit `configs/local.yaml` and set:
 ```yaml
 paths:
-  raw_bids: "/path/to/SOOP_BIDS"
-  soop_normalized: "/path/to/SOOP_NIfTI_normalized/NIfTI"
-  atlas_file: "/path/to/ArterialAtlas136.nii.gz"
-  atlas_labels_file: "/path/to/ArterialAtlas136.txt"
-  output_graphs: "data/graphs"
-  output_models: "data/models"
+  raw_bids:           "/abs/path/to/ds004889"
+  soop_normalized:    "/abs/path/to/SOOP_NIfTI_normalized/NIfTI"
+  atlas_file:         "/abs/path/to/SOOP_NIfTI_normalized/NIfTI/ArterialAtlas136.nii.gz"
+  atlas_labels_file:  "/abs/path/to/SOOP_NIfTI_normalized/NIfTI/ArterialAtlas136.txt"
 ```
 
-### 2. Preprocess data
+> **Note:** the values committed in `configs/default.yaml` are the original author's local paths. Always copy to `configs/local.yaml` and edit.
+
+### Step 4 — Validate your setup
 
 ```bash
-python scripts/preprocess_dataset.py --config configs/default.yaml
+python scripts/validate_dataset.py --config configs/local.yaml
 ```
 
-### 3. Generate supervoxel graphs
+This walks every assumption (raw BIDS layout, atlas file, lesion mask presence, SOOP files) and prints `[OK]`/`[WARN]`/`[ERR]` for each, so you can fix problems *before* hitting them deep in the pipeline.
+
+### Step 5 — Run the full pipeline
 
 ```bash
-python scripts/generate_graphs.py --config configs/default.yaml --use-preprocessed
-```
+# 1. Register modalities and normalize, save preprocessed NIfTI per subject
+python scripts/preprocess_dataset.py --config configs/local.yaml
 
-### 4. Train the model
+# 2. Run anatomically-constrained 3D SLIC + graph construction (~8000 nodes/subject)
+python scripts/generate_graphs.py    --config configs/local.yaml --use-preprocessed
 
-```bash
-python scripts/train.py --config configs/default.yaml --output-dir outputs
-```
+# 3. Train (Adam, ExponentialLR, early stopping, composite-score model selection)
+python scripts/train.py              --config configs/local.yaml --output-dir outputs
 
-### 5. Evaluate
+# 4. Evaluate the best checkpoint on the held-out test split
+python scripts/evaluate.py           --config configs/local.yaml \
+    --checkpoint outputs/checkpoints/best_model.pt
 
-```bash
-python scripts/evaluate.py --checkpoint outputs/checkpoints/best_model.pt --config configs/default.yaml
-```
-
-### 6. Visualize
-
-```bash
-python scripts/visualize.py --checkpoint outputs/checkpoints/best_model.pt \
-    --graph data/graphs/sub-0001_supervoxel_graph.pt
+# 5. (Optional) Generate visualization figures for one subject
+python scripts/visualize.py          --config configs/local.yaml \
+    --checkpoint outputs/checkpoints/best_model.pt \
+    --graph data/graphs/sub-1000_supervoxel_graph.pt
 ```
 
 ## Demo Notebooks
