@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "stroke-gat"
+version = "1.0.0"
+description = "Graph-based multi-modal MRI analysis with probabilistic attention for stroke lesion detection"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Luis R. Mercado-Diaz", email = "luis.mercado_diaz@uconn.edu"},
+]
+keywords = ["stroke", "MRI", "graph-attention-network", "medical-imaging", "deep-learning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.0",
+    "torch-geometric>=2.4",
+    "torch-scatter>=2.1",
+    "nibabel>=5.0",
+    "nilearn>=0.10",
+    "scikit-image>=0.21",
+    "scikit-learn>=1.3",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "numba>=0.58",
+    "omegaconf>=2.3",
+    "plotly>=5.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+    "pandas>=2.0",
+    "tqdm>=4.65",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+    "mypy>=1.5",
+]
+
+[project.scripts]
+stroke-preprocess = "scripts.preprocess_dataset:main"
+stroke-generate-graphs = "scripts.generate_graphs:main"
+stroke-train = "scripts.train:main"
+stroke-evaluate = "scripts.evaluate:main"
+stroke-visualize = "scripts.visualize:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"

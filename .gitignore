@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+/dist/
+/build/
+*.egg
+
+# Virtual environments
+/.venv/
+/venv/
+/env/
+
+# IDE / agent state
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+
+# Data files (large, not tracked).
+# Patterns are anchored to the repo root so they don't shadow Python
+# packages with names like `data/` (e.g. src/stroke_gat/data/).
+/data/
+*.nii
+*.nii.gz
+*.pt
+*.pth
+
+# Logs
+*.log
+/logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Output
+/outputs/
+/results/
+/figures/
+
+# Secrets
+.env
